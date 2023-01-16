@@ -2,6 +2,7 @@ import glob
 import os
 from datetime import datetime
 
+import PIL
 from PIL import Image
 
 in_dir = './data/test2'
@@ -11,6 +12,7 @@ img_height = 27
 sections = ['GFP', 'DAPI']
 horizontal_overlap = 125
 vertical_overlap = 90
+reduced_image_factor = 0.2
 
 
 def merge_row(images, overlap=0):
@@ -50,7 +52,7 @@ def main():
         os.makedirs(out_dir)
 
     for section in sections:
-        section_output = (out_dir + '/%s-%s.png') % (section, now)
+        section_output = (out_dir + '/%s-%s') % (section, now)
 
         section_files = glob.glob((in_dir + '/*%s*.tif') % section)
         section_files = sorted(section_files, key=lambda file: extract_file_number(file, section), reverse=False)
@@ -75,11 +77,21 @@ def main():
                 image_current_row = []
 
         image_result = merge_column(image_rows, vertical_overlap)
-        print('\n\n==> Saving image as %s...' % os.path.basename(section_output))
-        image_result.save(section_output, "PNG")
+
+        print('\n\n==> Saving image as %s.tif  ...' % os.path.basename(section_output))
+        image_result.save(section_output + '.tif', "TIFF")
+
+        print('==> Saving image as %s.png  ...' % os.path.basename(section_output))
+        image_result.save(section_output + '.png', "PNG")
+
+        reduced_width = int(image_result.size[0] * reduced_image_factor)
+        reduced_height = int(image_result.size[1] * reduced_image_factor)
+        image_result = image_result.resize((reduced_width, reduced_height), PIL.Image.NEAREST)
+
+        print('==> Saving image as %s.reduced.png ...' % os.path.basename(section_output))
+        image_result.save(section_output + '.reduced.png', "PNG")
         image_result.close()
-        print(
-            '======== [END] Merging section : %s ==> [%s] =========\n\n' % (section, os.path.basename(section_output)))
+        print('======== [END] Merging section : %s ==> [%s.tif] =========\n\n' % (section, os.path.basename(section_output)))
 
 
 if __name__ == '__main__':
